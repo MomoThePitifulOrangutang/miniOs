@@ -1,4 +1,4 @@
-// FILE: pager.cpp
+// FILE: miniOS.cpp
 // J Hall, K Goebel, M Baird, Transy U
 // CS 3074, Fall 2023
 //
@@ -36,6 +36,7 @@ int main (int argc, char** argv) {
   bool preemptive = PREEMPTIVE_DEFAULT;
   bool verbose = VERBOSE_DEFAULT;
   bool schedulerTypeSpecified = false;
+  book quantSpecified = false;
   bool pagerTypeSpecified = false;
   bool framesSpecified = false;
   bool pagesSpecified = false;
@@ -90,14 +91,14 @@ void argErrorChecker (int argCount, char** argList, bool& useDefaultFile, char* 
 }
 
 bool checkIfArgThatNeedsSpecifier (int lastArgIndex, int currentArgIndex, const char* currentArg, char** argList, bool& useDefaultFile, char*& pagerType, int& frames, int& pages, int& frameSize, bool& pagerTypeSpecified, bool& framesSpecified, bool& pagesSpecified, bool& frameSizeSpecified) {
-  if (!strcmp(currentArg, TYPE)) {
+  if (!strcmp(currentArg, PAGER_TYPE)) {
     if (pagerTypeSpecified) {
       printAlreadySpecifiedError(currentArg);
     }
     
     pagerTypeSpecified = true;
     if (argIsLastArg(lastArgIndex, currentArgIndex)) {
-      cout << endl << "Scheduling pagerType";
+      cout << endl << "Scheduling type";
       printArgNotSpecifiedError(currentArg);
     }
     
