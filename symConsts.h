@@ -13,14 +13,14 @@
 #define PRIORITY "Priority"
 #define RR "RR"
 #define SCHEDULER_TYPE_DEFAULT "FCFS"
-#define QUANTA_DEFAULT "10"
+#define QUANTA_DEFAULT 10
 #define PREEMPTIVE_DEFAULT false
+#define MAX_PCBS 250
 
 #define PAGER_TYPE "--pagerType"
 #define FRAMES "--frames"
 #define PAGES "--pages"
-#define FRAMESIZE "--framesize"
-#define VERBOSE "--verbose" 
+#define FRAMESIZE "--framesize" 
 #define LRU "LRU"
 #define MFU "MFU"
 #define RANDOM "Random"
@@ -30,5 +30,6 @@
 #define FRAMESIZE_DEFAULT 512
 #define MAX_FRAMES 65536
 
+#define VERBOSE "--verbose"
 #define VERBOSE_DEFAULT false
 #define INPUT_FILE_DEFAULT "final.in"
