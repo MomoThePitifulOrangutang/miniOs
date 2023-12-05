@@ -344,7 +344,7 @@ bool argVerifier (char* schedulerType, bool& quantaSpecified, bool& preemptive, 
 
 void readInputFile (ifstream& inFile, string pid, string pidNum, int& processCount, PCB* pcbs, int& pcbArrayIndex, string arrTime, int& arrTimeNum, string burTime, int& burTimeNum, string priority, int& priorityNum, string address, double addressNum, int frameSize, int pages, queue<string>& addresses) {
   inFile >> pid;
-  while (!inFile.eof()) {
+  while (!inFile.eof()) { 
     if (!pidChecker(pid, pidNum)) {
       printFileFormatError();
     }
@@ -372,25 +372,18 @@ void readInputFile (ifstream& inFile, string pid, string pidNum, int& processCou
     pcbs[pcbArrayIndex].wait = 0;
     pcbs[pcbArrayIndex].used = false;
     ++pcbArrayIndex; 
-    inFile >> address;
     for (int i=0; i < burTimeNum; ++i) {
       if (inFile.eof()) {
         printFileFormatError();
       }
       
+      inFile >> address;
       ensureAddressIsValid(address, addressNum, frameSize, pages);
       addresses.push(address);
-      inFile >> address;
     } 
     
-//    cout << endl << pcbs[(pcbArrayIndex -1)].pid << endl << pcbs[(pcbArrayIndex -1)].arrival << endl << pcbs[(pcbArrayIndex -1)].cpuBurst << endl << pcbs[(pcbArrayIndex -1)].priority << endl;
+    inFile >> pid;
   }
-  
-//  for (int i =0; i < addresses.size(); ++i) {
-//    cout << endl << addresses.front();
-//    addresses.push(addresses.front());
-//    addresses.pop();
-//  }
 }
 
 bool pidChecker (string pid, string& pidNum) {
