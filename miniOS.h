@@ -93,16 +93,26 @@ void ensureAddressIsValid (string address, double& addressNum, int frameSize, in
 // stringIsZero fn takes in a string. This fn checks to see if the string is anything but zero. Returns true if the string is just zero or a bunch of 0s, returns false otherwise
 bool stringIsZero (string str);
 
-// schedule fn takes in the scheduler type, the average wait time placeholder, the array of PCBs, the number of processes, the verbose flag, the preemptive flag, and the quanta. This fn sets the average wait time to the value returned by the appropriate scheduler function. This fn returns nothing
-void schedule (char* schedulerType, double& avgWaitTime, PCB* pcbs, int processCount, bool verbose, bool preemptive, int quanta);
-
 // emptyQueue fn takes in a queue. This fn pops the queue until the queue is empty. Returns nothing
 void emptyQueue (queue<string>& queue);
+
+// schedule fn takes in the scheduler type, the average wait time placeholder, the array of PCBs, the number of processes, the verbose flag, the preemptive flag, and the quanta. This fn sets the average wait time to the value returned by the appropriate scheduler function. This fn returns nothing
+void schedule (char* schedulerType, double& avgWaitTime, PCB* pcbs, int processCount, bool verbose, bool preemptive, int quanta, int firstPIDToCompare, int secondPIDToCompare, string pidNum, string tempPid, int tempArrTime, int tempBurTime, int tempPriority);
+
+// rearrangePCBArray fn takes in the array of PCBs, the number of processes, a pid number placeholder, another pid number placeholder, a pid string placeholder, another pid string placeholder, an arrival time placeholder, a burst time placeholder and a priority placeholder. This fn loops through the array a number of times equal to the process count, swapping the positions of two PCBs in the array if they are not in ascending order of pid. Returns nothing
+// This function was necessary because it appears as though Group 1 designed FCFS and RR with the assumption that the processes will be in order of ascending pid in the input file. Since this won't always be the case, the array must be arranged in ascending order of pid to ensure the processes are correctly scheduled in FCFS or RR scheduling.
+void rearrangePCBArray (PCB* pcbs, int processCount, int firstPIDToCompare, int secondPIDToCompare, string pidNum, string tempPid, int tempArrTime, int tempBurTime, int tempPriority);
+
+// swapProcessesPositionsInPCBArray fn takes in the array of PCBs, a temporary pid placeholder, a temporary arrival time placeholder, a temporary burst time placeholder, an a temporary priority placeholder. This fn saves the variables stored in one PCB, sets this PCB's variables to variables of the PCB in the next array index, then sets the variables of the PCB in the next array index to the variables that were saved from the previous PCB. Returns nothing
+void swapProcessesPositionsInPCBArray (PCB* pcbs, string tempPid, int tempArrTime, int tempBurTime, int tempPriority, int arrayIndex);
 
 // page fn takes in the frame table (uninitialized), the page table (unitialized), the number of frames, the number of pages, the framesize, the pager type, the queue of PCBs, the found pid placeholder, the found arrival time placeholder, the found burst time placeholder, the found priority placeholder, the found addresses placeholder, and the number of page faults (initialized to 0). This fn calls initializeTables, then pops the queue of PCBs and sets the number of page faults to the return of the appropriate pager fn, printing this value to the screen. Returns nothing
 void page (Frame* frameTable, Page* pageTable, int frames, int pages, int frameSize, char* pagerType, PCBQueue& pcbQueue, int foundPid, int foundArrTime, int foundBurTime, int foundPriority, queue<string> foundAddresses, int pageFaultCount, string address);
 
 // initializeTables fn takes in the frame table (uninitialized), the page table (uninitialized), the number of frames, the number of pages, and the frame size. To ensure that the frame and page tables represent reallocatable memory everytime a pager fn is called, this fn enters a for loop of length equal to the number of frames specified that redeclares a frame, sets the frame size of the frame to the frame size, and then loads this frame into the frame table to reinitialize the frame table. The same is also done for the page table, except the for loop's length is equal to the number of pages specified, and instead of setting the frame size, the page number of the page is set to the for loop's index. Returns nothing
 void initializeTables (Frame* frameTable, Page* pageTable, int frames, int pages, int frameSize);
+
+// printAvgWaitTime fn takes in the preemptive flag and the average wait time of the scheduler. This fn prints a message providing the average wait time, but if preemptive is set to true, this fn also prints a message stating that the average wait time provided is erroneous. Returns nothing
+void printAvgWaitTime (bool preemptive, double avgWaitTime, char* pagerType);
 
 #endif

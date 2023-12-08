@@ -1,5 +1,5 @@
 // FILE: PCBQueue.h
-// J Hall, Transy U
+// J Hall, K Goebel, M Baird, Transy U
 // CS 2444, Fall 2022
 //
 //     Interface for PCBQueue Class

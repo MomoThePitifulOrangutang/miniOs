@@ -1,5 +1,5 @@
 // FILE: PCBList.cpp
-// GROUP 5, Transy U
+// J Hall, K Goebel, M Baird, Transy U
 // CS 3074, Fall 2023
 //
 //

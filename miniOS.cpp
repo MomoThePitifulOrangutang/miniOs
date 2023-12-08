@@ -11,7 +11,7 @@
 //
 //	This program ONLY takes in command line arguments of the form '--schedulerType' followed by one of the following appropriate scheduler types: 
 //	FCFS, SJF, Priority or RR, and of the form '--quanta' followed by an integer, and of the form '--preemptive', and of the form '--pagerType' 
-//	followed by one of the following appropriate pager types: FIFO, LRU, MFU or Random, and of the form '--frames' followed by an integer, and 
+//	followed by one of the following appropriate pager types: FIFO, LRU, MFU or RANDOM, and of the form '--frames' followed by an integer, and 
 //	of the form '--pages' followed by an integer, and of the form '--framesize' followed by an integer that is also a power of two, and of the 
 //	form '--verbose' (if additional output is desired). This program can also take in a desired input file to be used in the program, so long as 
 //	this file's name is the LAST argument specified on the command line, and it fits the proper form. 
@@ -29,11 +29,10 @@
 //	specified, the input file will default to pager.in.
 //
 //	Should the user enter '--preemptive' and '--schedulerType SJF' or '--schedulerType Priority' on the command line, the output for the average wait time 
-//	will be incorrect. This unfortunately cannot be helped, as we cannot edit the implementation of the SJF or Priority scheduler functions. 
+//	will be incorrect. This unfortunately cannot be helped, as the implementation of the SJF or Priority scheduler functions cannot be edited. 
 //
-//	Should the user either enter '--schedulerType FCFS', '--schedulerType RR', or not specify the scheduler type on the command line, the output for the 
-//	average wait time will be inaccurate. Including '--verbose' when testing this revealed that the processes were not being scheduled by ascending order of pid.
-//	Instead it appears as though Group 1 designed FCFS and RR with the assumption that the processes will be in order of ascending pid in the input file. 
+//	Should the user enter '--pagerType LRU', the output for the processes' number of page faults COULD potentially be incorrect. This unfortunately cannot 
+//	be helped, as the implementation of the SJF or Priority scheduler functions cannot be edited.
 //
 
 #include "miniOS.h"
@@ -60,9 +59,9 @@ int main (int argc, char** argv) {
   bool useDefaultFile = false;
   string pidNum = "";
   ifstream inFile;
-  int pidNumber, arrTimeNum, burTimeNum, priorityNum, foundPid, foundArrTime, foundBurTime, foundPriority, pageFaultCount;
+  int pidNumber, arrTimeNum, burTimeNum, priorityNum, firstPIDToCompare, secondPIDToCompare, tempArrTime, tempBurTime, tempPriority, foundPid, foundArrTime, foundBurTime, foundPriority, pageFaultCount;
   double addressNum, avgWaitTime;
-  string pid, arrTime, burTime, priority, address;
+  string pid, arrTime, burTime, priority, address, tempPid;
   PCB pcbs[MAX_PCBS];   // due to design of the schedulers, cannot avoid statically allocating an array that will take up more memory than necessary to run the program
   PCBQueue pcbQueue;
   queue<string> addresses, foundAddresses;
@@ -71,9 +70,9 @@ int main (int argc, char** argv) {
   
   argErrorChecker (argc, argv, useDefaultFile, file, inFile, schedulerType, quanta, pagerType, frames, pages, frameSize, schedulerTypeSpecified, quantaSpecified, pagerTypeSpecified, framesSpecified, pagesSpecified, frameSizeSpecified, verbose, preemptive); 
   readInputFile(inFile, pid, pidNum, pidNumber, processCount, pcbs, pcbArrayIndex, arrTime, arrTimeNum, burTime, burTimeNum, priority, priorityNum, schedulerType, pcbQueue, address, addressNum, frameSize, pages, addresses);
-  schedule(schedulerType, avgWaitTime, pcbs, processCount, verbose, preemptive, quanta);
+  schedule(schedulerType, avgWaitTime, pcbs, processCount, verbose, preemptive, quanta, firstPIDToCompare, secondPIDToCompare, pidNum, tempPid, tempArrTime, tempBurTime, tempPriority);
   page(frameTable, pageTable, frames, pages, frameSize, pagerType, pcbQueue, foundPid, foundArrTime, foundBurTime, foundPriority, foundAddresses, pageFaultCount, address);
-  cout << endl << "Average Wait Time For All Processes: " << avgWaitTime << " second(s)." << endl;	    
+  printAvgWaitTime(preemptive, avgWaitTime, pagerType);
   return 0;
 }
 
@@ -173,7 +172,7 @@ bool checkIfArgThatNeedsSpecifier (int lastArgIndex, int currentArgIndex, const 
     
     if (invalidPagerType(pagerType)) {
       cout << endl << "Specified pager type is not a valid pager type. Please retry." << endl
-           << "Ensure that this value is specified directly after argument '--pagerType', separated by a space, and is one of the following pager types: 'FIFO', 'LRU', 'MFU', 'Random'." << endl << endl;
+           << "Ensure that this value is specified directly after argument '--pagerType', separated by a space, and is one of the following pager types: 'FIFO', 'LRU', 'MFU', 'RANDOM'." << endl << endl;
         exit(1);
     } 
     
@@ -481,8 +480,9 @@ void emptyQueue (queue<string>& queue) {
   }
 }
 
-void schedule (char* schedulerType, double& avgWaitTime, PCB* pcbs, int processCount, bool verbose, bool preemptive, int quanta) {
+void schedule (char* schedulerType, double& avgWaitTime, PCB* pcbs, int processCount, bool verbose, bool preemptive, int quanta, int firstPIDToCompare, int secondPIDToCompare, string pidNum, string tempPid, int tempArrTime, int tempBurTime, int tempPriority) {
   if (!strcmp(schedulerType, SCHEDULER_TYPE_DEFAULT)) {
+    rearrangePCBArray(pcbs, processCount, firstPIDToCompare, secondPIDToCompare, pidNum, tempPid, tempArrTime, tempBurTime, tempPriority);
     avgWaitTime = fcfs(pcbs, processCount, verbose);
   }
   
@@ -506,9 +506,41 @@ void schedule (char* schedulerType, double& avgWaitTime, PCB* pcbs, int processC
     }
   }
   
- else if (!strcmp(schedulerType, RR)) {
-    avgWaitTime = rr(pcbs, quanta, processCount, verbose);
+  else if (!strcmp(schedulerType, RR)) {
+   rearrangePCBArray(pcbs, processCount, firstPIDToCompare, secondPIDToCompare, pidNum, tempPid, tempArrTime, tempBurTime, tempPriority);
+   avgWaitTime = rr(pcbs, quanta, processCount, verbose);
   }
+}
+
+void rearrangePCBArray (PCB* pcbs, int processCount, int firstPIDToCompare, int secondPIDToCompare, string pidNum, string tempPid, int tempArrTime, int tempBurTime, int tempPriority) {
+  for (int i=0; i < processCount; ++i) {
+  	for (int i=0; i < (processCount - 1); ++i) {
+    	pidChecker(pcbs[i].pid, pidNum);
+    	firstPIDToCompare = atoi(pidNum.c_str());
+    	pidNum = "";
+    	pidChecker(pcbs[(i+1)].pid, pidNum);
+    	secondPIDToCompare = atoi(pidNum.c_str());
+    	pidNum = "";
+    	if (firstPIDToCompare > secondPIDToCompare) {
+    	  swapProcessesPositionsInPCBArray(pcbs, tempPid, tempArrTime, tempBurTime, tempPriority, i);
+      }
+    }
+  }
+}
+
+void swapProcessesPositionsInPCBArray (PCB* pcbs, string tempPid, int tempArrTime, int tempBurTime, int tempPriority, int arrayIndex) {
+  tempPid = pcbs[arrayIndex].pid;
+  tempArrTime = pcbs[arrayIndex].arrival;
+  tempBurTime = pcbs[arrayIndex].cpuBurst;
+  tempPriority = pcbs[arrayIndex].priority;
+  pcbs[arrayIndex].pid = pcbs[(arrayIndex + 1)].pid;
+  pcbs[arrayIndex].arrival = pcbs[(arrayIndex + 1)].arrival;
+  pcbs[arrayIndex].cpuBurst = pcbs[(arrayIndex + 1)].cpuBurst;
+  pcbs[arrayIndex].priority = pcbs[(arrayIndex + 1)].priority;
+  pcbs[(arrayIndex + 1)].pid = tempPid;
+  pcbs[(arrayIndex + 1)].arrival = tempArrTime;
+  pcbs[(arrayIndex + 1)].cpuBurst = tempBurTime;
+  pcbs[(arrayIndex + 1)].priority = tempPriority;
 }
 
 void page (Frame* frameTable, Page* pageTable, int frames, int pages, int frameSize, char* pagerType, PCBQueue& pcbQueue, int foundPid, int foundArrTime, int foundBurTime, int foundPriority, queue<string> foundAddresses, int pageFaultCount, string address) {
@@ -548,5 +580,21 @@ void initializeTables (Frame* frameTable, Page* pageTable, int frames, int pages
     Page page;
     page.setNumber(i);
     pageTable[i] = page;
+  }
+}
+
+void printAvgWaitTime (bool preemptive, double avgWaitTime, char* pagerType) {
+  if (!preemptive) {
+    cout << endl << "Average Wait Time For All Processes: " << avgWaitTime << " second(s)." << endl;	
+  }   
+  
+  else {
+    cout << endl << "Average Wait Time For All Processes: " << avgWaitTime << " second(s)." << endl
+         << "*** BE ADVISED: If '--preemptive' is specified on the command line, an erroneous average wait time will be printed above! ***" << endl << endl;
+  }
+  
+  if (!strcmp(pagerType, LRU)) {
+    cout << endl << "*** BE ADVISED: If '--pagerType LRU' is specified on the command line, an erroneous number of page faults COULD be printed above!" << endl
+         << "So don't trust the number of page faults if pager type is LRU! ***" << endl << endl;
   }
 }

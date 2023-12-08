@@ -1,5 +1,5 @@
 // FILE: PCBList.h
-// Group 5, Transy U
+// J Hall, K Goebel, M Baird, Transy U
 // CS 3234, Fall 2023
 //
 //
