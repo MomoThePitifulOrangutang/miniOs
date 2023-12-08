@@ -8,32 +8,20 @@
 #include <iostream>
 using namespace std;
 
-//// public member fns ////
-
-  // constructor
 PCBQueue::PCBQueue (void) {
     qCount = 0;
 }
 
-  // destructor
 PCBQueue::~PCBQueue (void) {
 }
 
-
-  // mutators
-
-    // put fn
 void PCBQueue::push (const char* schedulerType, const Pid newPid, const Arrival newArrTime, const Burst newBurTime, const Priority newPriority, const Addresses newAddresses) {
     Pid nextPid;
     Arrival nextArrTime;
     Burst nextBurTime;
     Priority nextPriority;
     Addresses nextAddresses;
-    
-      // cursor moved to head node
     pcbList.moveToFront();
-
-      // compare the new priority value with the values of the other priorities of the PCBs in the queue until its spot is found
     for (int i = 0; i < (qCount + 1); ++i) {
         if (!pcbList.get(nextPid, nextArrTime, nextBurTime, nextPriority, nextAddresses)){
           pcbList.insert(newPid, newArrTime, newBurTime, newPriority, newAddresses);
@@ -42,7 +30,6 @@ void PCBQueue::push (const char* schedulerType, const Pid newPid, const Arrival 
         }
         
         else if (newArrTime < nextArrTime) {
-          cout << endl << "Current Arrival Time: " << newArrTime;
           pcbList.insert(newPid, newArrTime, newBurTime, newPriority, newAddresses);
           ++qCount;
           return;
@@ -89,30 +76,18 @@ void PCBQueue::push (const char* schedulerType, const Pid newPid, const Arrival 
     }
 }
 
-    // pop fn
 bool PCBQueue::pop (Pid& foundPid, Arrival& foundArrTime, Burst& foundBurTime, Priority& foundPriority, Addresses& foundAddresses){
-
-      // cursor moved to head node
     pcbList.moveToFront();
-
-      // calls get from PCBList and returns false if get fails
     if (!pcbList.get (foundPid, foundArrTime, foundBurTime, foundPriority, foundAddresses)) {
         return false;
     }
 
-      // removes first real node in queue
     pcbList.remove();
     --qCount;
     return true;
 
 }
 
-    // queueCount
 int PCBQueue::queueCount (void) {
     return qCount;
-}
-
-      // debug fn
-void PCBQueue::printDEBUG (void) const{
-    pcbList.printDEBUG();
 }

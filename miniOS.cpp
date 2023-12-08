@@ -6,20 +6,34 @@
 //	Driver for the miniature operating system simulator project (miniOS)
 //
 //	This program takes in a list of argument inputs from the command line and simulates a miniature operating system by simulating a scheduling 
-//	algorithm of processes for execution in a CPU, while also simulating a page replacement algorithm for each process scheduled. 
+//	algorithm of processes for execution in a CPU, while also simulating a page replacement algorithm for each process scheduled, in the order
+//	that they were scheduled (preemption is not accounted for in this ordering). 
 //
-//	This program ONLY takes in command line arguments of the form '--pagerType' followed by one of the following appropriate pager types: FIFO, LRU, MFU or Random, 
-//      and of the form '--frames' followed by an integer, and of the form '--pages' followed by an integer, and of the form '--framesize' followed by an 
-//	integer that is also a power of two, and of the form '--verbose' (if additional output is desired). This program can also take in a desired input file 
-//	to be used in the program, so long as this file's name is the LAST argument specified on the command line, and it fits the proper form. An input file
-//	of proper form will always have ONLY two characters of the form 'P_', followed by an integer, as the first element of the file. All subsequent elements
-//	will just be integer values. All of these subsequent integers must yield a result smaller than the number of pages when divided by the integer following 
-//	the '--framesize' argument.  
+//	This program ONLY takes in command line arguments of the form '--schedulerType' followed by one of the following appropriate scheduler types: 
+//	FCFS, SJF, Priority or RR, and of the form '--quanta' followed by an integer, and of the form '--preemptive', and of the form '--pagerType' 
+//	followed by one of the following appropriate pager types: FIFO, LRU, MFU or Random, and of the form '--frames' followed by an integer, and 
+//	of the form '--pages' followed by an integer, and of the form '--framesize' followed by an integer that is also a power of two, and of the 
+//	form '--verbose' (if additional output is desired). This program can also take in a desired input file to be used in the program, so long as 
+//	this file's name is the LAST argument specified on the command line, and it fits the proper form. 
+
+//	An input file of proper form will always start with ONLY two characters of the form 'P_', followed by an integer, as the first element of the file. 
+//	All subsequent elements will just be integer values. The first three will represent the arrival time of the process, the burst time of the process, 
+//	and the priority of the process, respectively. There should be a remaining number of integers after these three that is equal to the burst time of 
+//	the process, these integers will represent addresses of the process. All of these address integers must yield a result smaller than the integer 
+//	following the '--pages' argument, when divided by the integer following the '--framesize' argument.  
 //	Any other inputs to the command line will result in an error message followed by the program exiting.
 //
-//	Should the user NOT enter any arguments into the command line, each of the appropriate arguments will default to some value. '--pagerType' will deafult to FIFO,
-//	'--frames' will default to 3, '--pages' will default to 8, '--framesize' will default to 512, '--verbose' will default to false, and if no input file is
+//	Should the user NOT enter any arguments into the command line, each of the appropriate arguments will default to some value. '--schedulerType' will 
+//	default to FCFS, '--quanta' will default to 10, '--preemptive' will default to false, '--pagerType' will deafult to FIFO, '--frames' will default to 3,
+//	'--pages' will default to 8, '--framesize' will default to 512, '--verbose' will default to false, and if no input file is
 //	specified, the input file will default to pager.in.
+//
+//	Should the user enter '--preemptive' and '--schedulerType SJF' or '--schedulerType Priority' on the command line, the output for the average wait time 
+//	will be incorrect. This unfortunately cannot be helped, as we cannot edit the implementation of the SJF or Priority scheduler functions. 
+//
+//	Should the user either enter '--schedulerType FCFS', '--schedulerType RR', or not specify the scheduler type on the command line, the output for the 
+//	average wait time will be inaccurate. Including '--verbose' when testing this revealed that the processes were not being scheduled by ascending order of pid.
+//	Instead it appears as though Group 1 designed FCFS and RR with the assumption that the processes will be in order of ascending pid in the input file. 
 //
 
 #include "miniOS.h"
@@ -58,7 +72,7 @@ int main (int argc, char** argv) {
   argErrorChecker (argc, argv, useDefaultFile, file, inFile, schedulerType, quanta, pagerType, frames, pages, frameSize, schedulerTypeSpecified, quantaSpecified, pagerTypeSpecified, framesSpecified, pagesSpecified, frameSizeSpecified, verbose, preemptive); 
   readInputFile(inFile, pid, pidNum, pidNumber, processCount, pcbs, pcbArrayIndex, arrTime, arrTimeNum, burTime, burTimeNum, priority, priorityNum, schedulerType, pcbQueue, address, addressNum, frameSize, pages, addresses);
   schedule(schedulerType, avgWaitTime, pcbs, processCount, verbose, preemptive, quanta);
-  page(frameTable, pageTable, frames, pages, frameSize, pagerType, pcbQueue, foundPid, foundArrTime, foundBurTime, foundPriority, foundAddresses, pageFaultCount);
+  page(frameTable, pageTable, frames, pages, frameSize, pagerType, pcbQueue, foundPid, foundArrTime, foundBurTime, foundPriority, foundAddresses, pageFaultCount, address);
   cout << endl << "Average Wait Time For All Processes: " << avgWaitTime << " second(s)." << endl;	    
   return 0;
 }
@@ -308,7 +322,7 @@ bool powerOfTwo (int frameSize) {
 }
 
 bool checkIfLooseSpecifierOrTypo (int currentIndex, char** argList) {
-  if ((!strcmp(argList[(currentIndex - 1)], SCHEDULER_TYPE)) || (!strcmp(argList[(currentIndex - 1)], PAGER_TYPE)) || (!strcmp(argList[(currentIndex - 1)], FRAMES)) || (!strcmp(argList[(currentIndex - 1)], PAGES)) || (!strcmp(argList[(currentIndex - 1)], FRAMESIZE))) {
+  if ((!strcmp(argList[(currentIndex - 1)], SCHEDULER_TYPE)) || (!strcmp(argList[(currentIndex - 1)], QUANTA)) || (!strcmp(argList[(currentIndex - 1)], PAGER_TYPE)) || (!strcmp(argList[(currentIndex - 1)], FRAMES)) || (!strcmp(argList[(currentIndex - 1)], PAGES)) || (!strcmp(argList[(currentIndex - 1)], FRAMESIZE))) {
     return false;
   } 
    
@@ -319,7 +333,7 @@ bool checkIfLooseSpecifierOrTypo (int currentIndex, char** argList) {
   }
 }
 
-bool argVerifier (char* schedulerType, bool& quantaSpecified, bool& preemptive, char* file, ifstream& inFile) {
+bool argVerifier (char* schedulerType, bool quantaSpecified, bool preemptive, char* file, ifstream& inFile) {
   if (quantaSpecified) {
     if ((schedulerType == SCHEDULER_TYPE_DEFAULT) || (schedulerType == SJF) || (schedulerType == PRIORITY)) {
       cout << endl << "Scheduler type '" << schedulerType << "' does not need a quanta. Please retry." << endl
@@ -344,7 +358,7 @@ bool argVerifier (char* schedulerType, bool& quantaSpecified, bool& preemptive, 
   return true;
 }
 
-void readInputFile (ifstream& inFile, string pid, string& pidNum, int& pidNumber, int& processCount, PCB* pcbs, int& pcbArrayIndex, string arrTime, int& arrTimeNum, string burTime, int& burTimeNum, string priority, int& priorityNum, char* schedulerType, PCBQueue& pcbQueue, string address, double addressNum, int frameSize, int pages, queue<string>& addresses) {
+void readInputFile (ifstream& inFile, string pid, string& pidNum, int pidNumber, int& processCount, PCB* pcbs, int& pcbArrayIndex, string arrTime, int& arrTimeNum, string burTime, int& burTimeNum, string priority, int& priorityNum, char* schedulerType, PCBQueue& pcbQueue, string address, double& addressNum, int frameSize, int pages, queue<string>& addresses) {
   inFile >> pid;
   while (!inFile.eof()) { 
     if (!pidChecker(pid, pidNum)) {
@@ -386,7 +400,7 @@ void readInputFile (ifstream& inFile, string pid, string& pidNum, int& pidNumber
       addresses.push(address);
     } 
     
-    pcbQueue.push(schedulerType, pidNumber, arrTimeNum, burTimeNum, priorityNum, addresses);
+    pcbQueue.push(schedulerType, pidNumber, arrTimeNum, burTimeNum, priorityNum, addresses);   // this is done so that the order of the schedulers can be determined later in the driver so that the program can page the processes in the correct order of the scheduler
     emptyQueue(addresses);
     inFile >> pid;
   }
@@ -438,7 +452,7 @@ bool validPriority (string priority, int& priorityNum) {
   return true;
 }
 
-void ensureAddressIsValid (string address, double addressNum, int& frameSize, int& pages) {
+void ensureAddressIsValid (string address, double& addressNum, int frameSize, int pages) {
   addressNum = atof(address.c_str());
   if ((valueIsFloat(address.c_str())) || ((!stringIsZero(address)) && (addressNum == 0))) {
     printFileFormatError();
@@ -467,7 +481,7 @@ void emptyQueue (queue<string>& queue) {
   }
 }
 
-void schedule (char* schedulerType, double& avgWaitTime, PCB* pcbs, int& processCount, bool& verbose, bool& preemptive, int& quanta) {
+void schedule (char* schedulerType, double& avgWaitTime, PCB* pcbs, int processCount, bool verbose, bool preemptive, int quanta) {
   if (!strcmp(schedulerType, SCHEDULER_TYPE_DEFAULT)) {
     avgWaitTime = fcfs(pcbs, processCount, verbose);
   }
@@ -497,7 +511,7 @@ void schedule (char* schedulerType, double& avgWaitTime, PCB* pcbs, int& process
   }
 }
 
-void page (Frame* frameTable, Page* pageTable, int frames, int pages, int frameSize, char* pagerType, PCBQueue& pcbQueue, int& foundPid, int& foundArrTime, int& foundBurTime, int foundPriority, queue<string> foundAddresses, int& pageFaultCount) {
+void page (Frame* frameTable, Page* pageTable, int frames, int pages, int frameSize, char* pagerType, PCBQueue& pcbQueue, int foundPid, int foundArrTime, int foundBurTime, int foundPriority, queue<string> foundAddresses, int pageFaultCount, string address) {
   while (pcbQueue.queueCount() != 0) {
     initializeTables(frameTable, pageTable, frames, pages, frameSize);
     pcbQueue.pop(foundPid, foundArrTime, foundBurTime, foundPriority, foundAddresses);
@@ -516,7 +530,7 @@ void page (Frame* frameTable, Page* pageTable, int frames, int pages, int frameS
       cout << endl << "P_" << foundPid << " finished executing with a total of " << pageFaultCount << " page faults." << endl;
     }
     
-    else if (!strcmp(pagerType, PAGER_TYPE_DEFAULT)) {
+    else if (!strcmp(pagerType, RANDOM)) {
       pageFaultCount = random_sched(foundAddresses, frameTable, pageTable, frames, frameSize, pages);
       cout << endl << "P_" << foundPid << " finished executing with a total of " << pageFaultCount << " page faults." << endl;
     }

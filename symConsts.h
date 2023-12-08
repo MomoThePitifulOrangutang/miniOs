@@ -15,7 +15,7 @@
 #define SCHEDULER_TYPE_DEFAULT "FCFS"
 #define QUANTA_DEFAULT 10
 #define PREEMPTIVE_DEFAULT false
-#define MAX_PCBS 250
+#define MAX_PCBS 300
 
 #define PAGER_TYPE "--pagerType"
 #define FRAMES "--frames"
@@ -23,7 +23,7 @@
 #define FRAMESIZE "--framesize" 
 #define LRU "LRU"
 #define MFU "MFU"
-#define RANDOM "Random"
+#define RANDOM "RANDOM"
 #define PAGER_TYPE_DEFAULT "FIFO"
 #define FRAMES_DEFAULT 3
 #define PAGES_DEFAULT 8
