@@ -50,7 +50,7 @@ void moveToFront (void);
 
 
   // accessors
-bool get (Pid& foundPid, Burst& foundBurTime, Priority& foundPriority, Addresses& foundAddresses) const;
+bool get (Pid& foundPid, Arrival& foundArrTime, Burst& foundBurTime, Priority& foundPriority, Addresses& foundAddresses) const;
          // precondition: cursor precedes item to retrieve
          // postcondition: item holds data value from node following cursor node
 

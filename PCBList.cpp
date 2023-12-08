@@ -33,12 +33,13 @@ PCBList::~PCBList (void) {
     tail = 0;
 }
 
-bool PCBList::get (Pid& foundPid, Burst& foundBurTime, Priority& foundPriority, Addresses& foundAddresses) const {
+bool PCBList::get (Pid& foundPid, Arrival& foundArrTime, Burst& foundBurTime, Priority& foundPriority, Addresses& foundAddresses) const {
     if (cursor -> next == 0) {
         return false;
     }
     
     foundPid = cursor -> next -> pid;
+    foundArrTime = cursor -> next -> arrTime;
     foundBurTime = cursor -> next -> burTime;
     foundPriority = cursor -> next -> priority;
     foundAddresses = cursor -> next -> addressQueue;

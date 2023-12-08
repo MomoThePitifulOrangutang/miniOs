@@ -46,7 +46,7 @@ int main (int argc, char** argv) {
   bool useDefaultFile = false;
   string pidNum = "";
   ifstream inFile;
-  int pidNumber, arrTimeNum, burTimeNum, priorityNum, foundPid, foundBurTime, foundPriority, pageFaultCount;
+  int pidNumber, arrTimeNum, burTimeNum, priorityNum, foundPid, foundArrTime, foundBurTime, foundPriority, pageFaultCount;
   double addressNum, avgWaitTime;
   string pid, arrTime, burTime, priority, address;
   PCB pcbs[MAX_PCBS];   // due to design of the schedulers, cannot avoid statically allocating an array that will take up more memory than necessary to run the program
@@ -58,7 +58,7 @@ int main (int argc, char** argv) {
   argErrorChecker (argc, argv, useDefaultFile, file, inFile, schedulerType, quanta, pagerType, frames, pages, frameSize, schedulerTypeSpecified, quantaSpecified, pagerTypeSpecified, framesSpecified, pagesSpecified, frameSizeSpecified, verbose, preemptive); 
   readInputFile(inFile, pid, pidNum, pidNumber, processCount, pcbs, pcbArrayIndex, arrTime, arrTimeNum, burTime, burTimeNum, priority, priorityNum, schedulerType, pcbQueue, address, addressNum, frameSize, pages, addresses);
   schedule(schedulerType, avgWaitTime, pcbs, processCount, verbose, preemptive, quanta);
-  page(frameTable, pageTable, frames, pages, frameSize, pagerType, pcbQueue, foundPid, foundBurTime, foundPriority, foundAddresses, pageFaultCount);
+  page(frameTable, pageTable, frames, pages, frameSize, pagerType, pcbQueue, foundPid, foundArrTime, foundBurTime, foundPriority, foundAddresses, pageFaultCount);
   cout << endl << "Average Wait Time For All Processes: " << avgWaitTime << " second(s)." << endl;	    
   return 0;
 }
@@ -497,10 +497,10 @@ void schedule (char* schedulerType, double& avgWaitTime, PCB* pcbs, int& process
   }
 }
 
-void page (Frame* frameTable, Page* pageTable, int frames, int pages, int frameSize, char* pagerType, PCBQueue& pcbQueue, int& foundPid, int& foundBurTime, int foundPriority, queue<string>& foundAddresses, int& pageFaultCount) {
+void page (Frame* frameTable, Page* pageTable, int frames, int pages, int frameSize, char* pagerType, PCBQueue& pcbQueue, int& foundPid, int& foundArrTime, int& foundBurTime, int foundPriority, queue<string> foundAddresses, int& pageFaultCount) {
   while (pcbQueue.queueCount() != 0) {
     initializeTables(frameTable, pageTable, frames, pages, frameSize);
-    pcbQueue.pop(foundPid, foundBurTime, foundPriority, foundAddresses);
+    pcbQueue.pop(foundPid, foundArrTime, foundBurTime, foundPriority, foundAddresses);
     if (!strcmp(pagerType, PAGER_TYPE_DEFAULT)) {
       pageFaultCount = fifo(foundAddresses, frameTable, pageTable, frames, frameSize, pages);
       cout << endl << "P_" << foundPid << " finished executing with a total of " << pageFaultCount << " page faults." << endl;

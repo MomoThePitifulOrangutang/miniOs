@@ -23,7 +23,7 @@ PCBQueue::~PCBQueue (void) {
   // mutators
 
     // put fn
-void PCBQueue::push (const char* schedulerType, const Pid& newPid, const Arrival& newArrTime, const Burst& newBurTime, const Priority& newPriority, const Addresses& newAddresses) {
+void PCBQueue::push (const char* schedulerType, const Pid newPid, const Arrival newArrTime, const Burst newBurTime, const Priority newPriority, const Addresses newAddresses) {
     Pid nextPid;
     Arrival nextArrTime;
     Burst nextBurTime;
@@ -35,23 +35,21 @@ void PCBQueue::push (const char* schedulerType, const Pid& newPid, const Arrival
 
       // compare the new priority value with the values of the other priorities of the PCBs in the queue until its spot is found
     for (int i = 0; i < (qCount + 1); ++i) {
-        if (!pcbList.get(nextPid, nextBurTime, nextPriority, nextAddresses)){
-          cout << endl << "EMPTYQUEUE: P_" << newPid << " currently being stuck before P_" << nextPid << endl;
+        if (!pcbList.get(nextPid, nextArrTime, nextBurTime, nextPriority, nextAddresses)){
           pcbList.insert(newPid, newArrTime, newBurTime, newPriority, newAddresses);
           ++qCount;
           return;
         }
         
         else if (newArrTime < nextArrTime) {
+          cout << endl << "Current Arrival Time: " << newArrTime;
           pcbList.insert(newPid, newArrTime, newBurTime, newPriority, newAddresses);
-          cout << endl << "ARR: P_" << newPid << " currently being stuck before P_" << nextPid << endl;
           ++qCount;
           return;
         }
         
         else if ((newArrTime == nextArrTime) && ((!strcmp(schedulerType, SCHEDULER_TYPE_DEFAULT)) || (!strcmp(schedulerType, RR)))) {
           if (newPid < nextPid) {
-            cout << endl << "FCFS/RR: P_" << newPid << " currently being stuck before P_" << nextPid << endl;
             pcbList.insert(newPid, newArrTime, newBurTime, newPriority, newAddresses);
             ++qCount;
             return;
@@ -60,7 +58,6 @@ void PCBQueue::push (const char* schedulerType, const Pid& newPid, const Arrival
         
         else if ((newArrTime == nextArrTime) && (!strcmp(schedulerType, SJF))) {
           if (newBurTime < nextBurTime) {
-            cout << endl << "SJF: P_" << newPid << " currently being stuck before P_" << nextPid << endl;
             pcbList.insert(newPid, newArrTime, newBurTime, newPriority, newAddresses);
             ++qCount;
             return;
@@ -68,7 +65,6 @@ void PCBQueue::push (const char* schedulerType, const Pid& newPid, const Arrival
           
           else if ((newBurTime == nextBurTime) && (newPid < nextPid)) {
             pcbList.insert(newPid, newArrTime, newBurTime, newPriority, newAddresses);
-            cout << endl << "SJF: P_" << newPid << " currently being stuck before P_" << nextPid << endl;
             ++qCount;
             return;
           }
@@ -76,14 +72,12 @@ void PCBQueue::push (const char* schedulerType, const Pid& newPid, const Arrival
         
         else if ((newArrTime == nextArrTime) && (!strcmp(schedulerType, PRIORITY))) {
           if (newPriority > nextPriority) {
-            cout << endl << "PRI: P_" << newPid << " currently being stuck before P_" << nextPid << endl;
             pcbList.insert(newPid, newArrTime, newBurTime, newPriority, newAddresses);
             ++qCount;
             return;
           }
           
           else if ((newPriority == nextPriority) && (newPid < nextPid)) {
-            cout << endl << "PRI: P_" << newPid << " currently being stuck before P_" << nextPid << endl;
             pcbList.insert(newPid, newArrTime, newBurTime, newPriority, newAddresses);
             ++qCount;
             return;
@@ -95,14 +89,14 @@ void PCBQueue::push (const char* schedulerType, const Pid& newPid, const Arrival
     }
 }
 
-    // get fn
-bool PCBQueue::pop (Pid& foundPid, Burst& foundBurTime, Priority& foundPriority, Addresses& foundAddresses){
+    // pop fn
+bool PCBQueue::pop (Pid& foundPid, Arrival& foundArrTime, Burst& foundBurTime, Priority& foundPriority, Addresses& foundAddresses){
 
       // cursor moved to head node
     pcbList.moveToFront();
 
       // calls get from PCBList and returns false if get fails
-    if (!pcbList.get (foundPid, foundBurTime, foundPriority, foundAddresses)) {
+    if (!pcbList.get (foundPid, foundArrTime, foundBurTime, foundPriority, foundAddresses)) {
         return false;
     }
 

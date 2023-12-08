@@ -100,7 +100,7 @@ void schedule (char* schedulerType, double& avgWaitTime, PCB* pcbs, int& process
 void emptyQueue (queue<string>& queue);
 
 // page fn 
-void page (Frame* frameTable, Page* pageTable, int frames, int pages, int frameSize, char* pagerType, PCBQueue& pcbQueue, int& foundPid, int& foundBurTime, int foundPriority, queue<string>& foundAddresses, int& pageFaultCount);
+void page (Frame* frameTable, Page* pageTable, int frames, int pages, int frameSize, char* pagerType, PCBQueue& pcbQueue, int& foundPid, int& foundArrTime, int& foundBurTime, int foundPriority, queue<string> foundAddresses, int& pageFaultCount);
 
 // initializeTables fn
 void initializeTables (Frame* frameTable, Page* pageTable, int frames, int pages, int frameSize);

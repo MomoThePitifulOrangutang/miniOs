@@ -24,11 +24,11 @@ public:
 
   // mutators
     // put
-    void push (const char* schedulerType, const Pid& newPid, const Arrival& newArrTime, const Burst& newBurTime, const Priority& newPriority, const Addresses& newAddresses);
+    void push (const char* schedulerType, const Pid newPid, const Arrival newArrTime, const Burst newBurTime, const Priority newPriority, const Addresses newAddresses);
       //postcondition: reference parameter added to queue in descending order
 
     // get
-    bool pop (Pid& foundPid, Burst& foundBurTime, Priority& foundPriority, Addresses& foundAddresses);
+    bool pop (Pid& foundPid, Arrival& foundArrTime, Burst& foundBurTime, Priority& foundPriority, Addresses& foundAddresses);
       //postcondition: front-most member of queue copied as reference parameter and removed from queue
 
   // accessors
