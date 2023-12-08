@@ -19,14 +19,17 @@
 #include <queue>
 #include <vector>
 #include "symConsts.h"
+#include "PCBQueue.h"
 #include "utilities.h"
 #include "fcfs.h"
 #include "sjf.h"
 #include "priority.h"
 #include "rr.h"
-
-//#include "pageTable.h"
-//#include "pageReplacementSimulator.h"
+#include "Frame.h"
+#include "fifo.h"
+#include "lru.h"
+#include "mfu.h"
+#include "random.h"
 
 using namespace std;
 
@@ -67,7 +70,7 @@ bool checkIfLooseSpecifierOrTypo (int currentIndex, char** argList);
 bool argVerifier (char* schedulingType, bool& quantaSpecified, bool& preemptive, char* file, ifstream& inFile);
 
 // readInputFile fn takes in 
-void readInputFile (ifstream& inFile, string pid, string pidNum, int& processCount, PCB* pcbs, int& pcbArrayIndex, string arrTime, int& arrTimeNum, string burTime, int& burTimeNum, string priority, int& priorityNum, string address, double addressNum, int frameSize, int pages, queue<string>& addresses);
+void readInputFile (ifstream& inFile, string pid, string& pidNum, int& pidNumber, int& processCount, PCB* pcbs, int& pcbArrayIndex, string arrTime, int& arrTimeNum, string burTime, int& burTimeNum, string priority, int& priorityNum, char* schedulerType, PCBQueue& pcbQueue, string address, double addressNum, int frameSize, int pages, queue<string>& addresses);
 
 // pidChecker fn takes in the first string of the input file and an empty string to fill. This fn checks if this string is of proper form ('P_<pidInteger>'). Returns true if so, false otherwise
 bool pidChecker (string pid, string& pidNum);
@@ -92,5 +95,14 @@ bool stringIsZero (string str);
 
 // schedule fn
 void schedule (char* schedulerType, double& avgWaitTime, PCB* pcbs, int& processCount, bool& verbose, bool& preemptive, int& quanta);
+
+// emptyQueue fn takes in a queue. This fn pops the queue until it is empty. Returns nothing
+void emptyQueue (queue<string>& queue);
+
+// page fn 
+void page (Frame* frameTable, Page* pageTable, int frames, int pages, int frameSize, char* pagerType, PCBQueue& pcbQueue, int& foundPid, int& foundBurTime, int foundPriority, queue<string>& foundAddresses, int& pageFaultCount);
+
+// initializeTables fn
+void initializeTables (Frame* frameTable, Page* pageTable, int frames, int pages, int frameSize);
 
 #endif

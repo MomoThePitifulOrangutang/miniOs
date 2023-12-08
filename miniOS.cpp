@@ -1,4 +1,4 @@
-// FILE: pager.cpp
+// FILE: miniOS.cpp
 // J Hall, K Goebel, M Baird, Transy U
 // CS 3074, Fall 2023
 //
@@ -46,18 +46,20 @@ int main (int argc, char** argv) {
   bool useDefaultFile = false;
   string pidNum = "";
   ifstream inFile;
-  int arrTimeNum, burTimeNum, priorityNum;
+  int pidNumber, arrTimeNum, burTimeNum, priorityNum, foundPid, foundBurTime, foundPriority, pageFaultCount;
   double addressNum, avgWaitTime;
   string pid, arrTime, burTime, priority, address;
-  PCB pcbs[MAX_PCBS];	// due to design of the schedulers, cannot avoid statically allocating an array that will take up more memory than necessary to run the program
-  queue<string> addresses;
+  PCB pcbs[MAX_PCBS];   // due to design of the schedulers, cannot avoid statically allocating an array that will take up more memory than necessary to run the program
+  PCBQueue pcbQueue;
+  queue<string> addresses, foundAddresses;
+  Frame frameTable[MAX_FRAMES];   // due to design of the pagers, cannot avoid statically allocating an array that will take up more memory than necessary to run the program
+  Page pageTable[MAX_FRAMES];   // due to design of the pagers, cannot avoid statically allocating an array that will take up more memory than necessary to run the program
   
   argErrorChecker (argc, argv, useDefaultFile, file, inFile, schedulerType, quanta, pagerType, frames, pages, frameSize, schedulerTypeSpecified, quantaSpecified, pagerTypeSpecified, framesSpecified, pagesSpecified, frameSizeSpecified, verbose, preemptive); 
-  readInputFile(inFile, pid, pidNum, processCount, pcbs, pcbArrayIndex, arrTime, arrTimeNum, burTime, burTimeNum, priority, priorityNum, address, addressNum, frameSize, pages, addresses);
+  readInputFile(inFile, pid, pidNum, pidNumber, processCount, pcbs, pcbArrayIndex, arrTime, arrTimeNum, burTime, burTimeNum, priority, priorityNum, schedulerType, pcbQueue, address, addressNum, frameSize, pages, addresses);
   schedule(schedulerType, avgWaitTime, pcbs, processCount, verbose, preemptive, quanta);
-//  page();
-  
-//  PageTable pageTable(pages);	    
+  page(frameTable, pageTable, frames, pages, frameSize, pagerType, pcbQueue, foundPid, foundBurTime, foundPriority, foundAddresses, pageFaultCount);
+  cout << endl << "Average Wait Time For All Processes: " << avgWaitTime << " second(s)." << endl;	    
   return 0;
 }
 
@@ -342,7 +344,7 @@ bool argVerifier (char* schedulerType, bool& quantaSpecified, bool& preemptive, 
   return true;
 }
 
-void readInputFile (ifstream& inFile, string pid, string pidNum, int& processCount, PCB* pcbs, int& pcbArrayIndex, string arrTime, int& arrTimeNum, string burTime, int& burTimeNum, string priority, int& priorityNum, string address, double addressNum, int frameSize, int pages, queue<string>& addresses) {
+void readInputFile (ifstream& inFile, string pid, string& pidNum, int& pidNumber, int& processCount, PCB* pcbs, int& pcbArrayIndex, string arrTime, int& arrTimeNum, string burTime, int& burTimeNum, string priority, int& priorityNum, char* schedulerType, PCBQueue& pcbQueue, string address, double addressNum, int frameSize, int pages, queue<string>& addresses) {
   inFile >> pid;
   while (!inFile.eof()) { 
     if (!pidChecker(pid, pidNum)) {
@@ -371,6 +373,8 @@ void readInputFile (ifstream& inFile, string pid, string pidNum, int& processCou
     pcbs[pcbArrayIndex].priority = priorityNum;
     pcbs[pcbArrayIndex].wait = 0;
     pcbs[pcbArrayIndex].used = false;
+    pidNumber = atoi(pidNum.c_str());
+    pidNum = "";
     ++pcbArrayIndex; 
     for (int i=0; i < burTimeNum; ++i) {
       if (inFile.eof()) {
@@ -382,6 +386,8 @@ void readInputFile (ifstream& inFile, string pid, string pidNum, int& processCou
       addresses.push(address);
     } 
     
+    pcbQueue.push(schedulerType, pidNumber, arrTimeNum, burTimeNum, priorityNum, addresses);
+    emptyQueue(addresses);
     inFile >> pid;
   }
 }
@@ -391,12 +397,10 @@ bool pidChecker (string pid, string& pidNum) {
     pidNum = pidNum + pid[i];
   }
   
-  if ((pid[0] != 'P') || (pid[1] != '_') || ((!stringIsZero(pidNum)) && (!atoi(pidNum.c_str())))) {
-    pidNum = "";
+  if ((pid[0] != 'P') || (pid[1] != '_') || ((!stringIsZero(pidNum)) && (!atoi(pidNum.c_str()))) || ((atoi(pidNum.c_str())) < 0)) {
     return false;
   }
-  
-  pidNum = "";
+
   return true;
 }
 
@@ -457,38 +461,78 @@ bool stringIsZero (string str) {
   return true;
 }
 
+void emptyQueue (queue<string>& queue) {
+  while (!queue.empty()) {
+      queue.pop();
+  }
+}
+
 void schedule (char* schedulerType, double& avgWaitTime, PCB* pcbs, int& processCount, bool& verbose, bool& preemptive, int& quanta) {
   if (!strcmp(schedulerType, SCHEDULER_TYPE_DEFAULT)) {
     avgWaitTime = fcfs(pcbs, processCount, verbose);
-    cout << endl << "Average Wait Time: " << avgWaitTime << endl;
   }
   
   else if (!strcmp(schedulerType, SJF)) {
     if (preemptive) {
       avgWaitTime = preemptiveSjf(pcbs, processCount, verbose);
-      cout << endl << "Average Wait Time: " << avgWaitTime << endl;
     }
     
     else {
       avgWaitTime = nonpreemptiveSjf(pcbs, processCount, verbose);
-      cout << endl << "Average Wait Time: " << avgWaitTime << endl;
     }
   }
   
   else if (!strcmp(schedulerType, PRIORITY)) {
     if (preemptive) {
       avgWaitTime = preemptivePriority(pcbs, processCount, verbose);
-      cout << endl << "Average Wait Time: " << avgWaitTime << endl;
     }
     
     else {
       avgWaitTime = nonpreemptivePriority(pcbs, processCount, verbose);
-      cout << endl << "Average Wait Time: " << avgWaitTime << endl;
     }
   }
   
  else if (!strcmp(schedulerType, RR)) {
     avgWaitTime = rr(pcbs, quanta, processCount, verbose);
-    cout << endl << "Average Wait Time: " << avgWaitTime << endl;
+  }
+}
+
+void page (Frame* frameTable, Page* pageTable, int frames, int pages, int frameSize, char* pagerType, PCBQueue& pcbQueue, int& foundPid, int& foundBurTime, int foundPriority, queue<string>& foundAddresses, int& pageFaultCount) {
+  while (pcbQueue.queueCount() != 0) {
+    initializeTables(frameTable, pageTable, frames, pages, frameSize);
+    pcbQueue.pop(foundPid, foundBurTime, foundPriority, foundAddresses);
+    if (!strcmp(pagerType, PAGER_TYPE_DEFAULT)) {
+      pageFaultCount = fifo(foundAddresses, frameTable, pageTable, frames, frameSize, pages);
+      cout << endl << "P_" << foundPid << " finished executing with a total of " << pageFaultCount << " page faults." << endl;
+    }
+    
+    else if (!strcmp(pagerType, LRU)) {
+      pageFaultCount = lru(foundAddresses, frameTable, pageTable, frames, frameSize, pages);
+      cout << endl << "P_" << foundPid << " finished executing with a total of " << pageFaultCount << " page faults." << endl;
+    }
+    
+    else if (!strcmp(pagerType, MFU)) {
+      pageFaultCount = mfu(foundAddresses, frameTable, pageTable, frames, frameSize, pages);
+      cout << endl << "P_" << foundPid << " finished executing with a total of " << pageFaultCount << " page faults." << endl;
+    }
+    
+    else if (!strcmp(pagerType, PAGER_TYPE_DEFAULT)) {
+      pageFaultCount = random_sched(foundAddresses, frameTable, pageTable, frames, frameSize, pages);
+      cout << endl << "P_" << foundPid << " finished executing with a total of " << pageFaultCount << " page faults." << endl;
+    }
+  }
+}
+
+void initializeTables (Frame* frameTable, Page* pageTable, int frames, int pages, int frameSize) {
+  for (int i=0; i < frames; ++i) {
+    Frame frame;
+    frame.setSize(frameSize);
+    frameTable[i] = frame;
+  }
+  
+  for (int i=0; i < pages; ++i) {
+    Page page;
+    page.setNumber(i);
+    pageTable[i] = page;
   }
 }
